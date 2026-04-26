@@ -121,7 +121,7 @@ const SAMPLE_DIST = 6;
 let lastPoint = null;
 
 canvas.addEventListener("mousedown", (e) => handleMouseDown(e));
-canvas.addEventListener("touchstart", (e) => handleMouseDown(e));
+canvas.addEventListener("touchstart", (e) => handleDrawStart(e));
 canvas.addEventListener("mousemove", (e) => handleMouseMove(e));
 canvas.addEventListener("touchmove", (e) => handleMouseMove(e));
 canvas.addEventListener("mouseup", (e) => handleMouseUp(e));
@@ -131,22 +131,26 @@ canvas.addEventListener("wheel", (e) => handleMouseWheel(e));
 // =========================
 // Event Listener functions
 // =========================
+function handleDrawStart(e) {
+    isDrawing = true;
+
+	currentStroke = new Stroke();
+	strokes.push(currentStroke);
+		
+	uv = camera.screenToWorld(e.clientX, e.clientY)
+	const p = new Node(uv.x, uv.y);
+
+	currentStroke.nodes.push(p);
+	lastPoint = p;
+}
+
 function handleMouseDown(e) {
 	if (e.button === 1 || e.button === 2) { // middle or right click
         isPanning = true;
         lastX = e.clientX;
         lastY = e.clientY;
     } else {
-		isDrawing = true;
-
-		currentStroke = new Stroke();
-		strokes.push(currentStroke);
-		
-		uv = camera.screenToWorld(e.clientX, e.clientY)
-		const p = new Node(uv.x, uv.y);
-
-		currentStroke.nodes.push(p);
-		lastPoint = p;
+		handleDrawStart(e);
 	}
 }
 
