@@ -120,7 +120,18 @@ const SAMPLE_DIST = 6;
 
 let lastPoint = null;
 
-canvas.addEventListener("mousedown", (e) => {
+canvas.addEventListener("mousedown", (e) => handleMouseDown(e));
+canvas.addEventListener("touchstart", (e) => handleMouseDown(e));
+canvas.addEventListener("mousemove", (e) => handleMouseMove(e));
+canvas.addEventListener("touchmove", (e) => handleMouseMove(e));
+canvas.addEventListener("mouseup", (e) => handleMouseUp(e));
+canvas.addEventListener("touchend", (e) => handleMouseUp(e));
+canvas.addEventListener("wheel", (e) => handleMouseWheel(e));
+
+// =========================
+// Event Listener functions
+// =========================
+function handleMouseDown(e) {
 	if (e.button === 1 || e.button === 2) { // middle or right click
         isPanning = true;
         lastX = e.clientX;
@@ -137,9 +148,9 @@ canvas.addEventListener("mousedown", (e) => {
 		currentStroke.nodes.push(p);
 		lastPoint = p;
 	}
-});
+}
 
-canvas.addEventListener("mousemove", (e) => {
+function handleMouseMove(e) {
 	if (isPanning) {
 		const dx = e.clientX - lastX;
 		const dy = e.clientY - lastY;
@@ -173,10 +184,10 @@ canvas.addEventListener("mousemove", (e) => {
 		}
 		lastPoint = p;
 	}
-});
+}
 
-canvas.addEventListener("mouseup", () => {
-	if (!isPanning) {
+function handleMouseUp(e) {
+    if (!isPanning) {
 		rebuildSegments(currentStroke)
 		isDrawing = false;
 		currentStroke = null;
@@ -184,16 +195,15 @@ canvas.addEventListener("mouseup", () => {
 	} else {
 		isPanning = false
 	}
-	
-});
+}
 
-canvas.addEventListener("wheel", (e) => {
+function handleMouseWheel(e) {
     e.preventDefault();
 
     const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
 
     camera.zoomAt(e.clientX, e.clientY, zoomFactor);
-});
+}
 
 // =========================
 // RENDERING
