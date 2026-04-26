@@ -121,9 +121,9 @@ const SAMPLE_DIST = 6;
 let lastPoint = null;
 
 canvas.addEventListener("mousedown", (e) => handleMouseDown(e));
-canvas.addEventListener("touchstart", (e) => handleDrawStart(e));
+canvas.addEventListener("touchstart", (e) => handleTouchStart(e));
 canvas.addEventListener("mousemove", (e) => handleMouseMove(e));
-canvas.addEventListener("touchmove", (e) => handleMouseMove(e));
+canvas.addEventListener("touchmove", (e) => handleTouchMove(e));
 canvas.addEventListener("mouseup", (e) => handleMouseUp(e));
 canvas.addEventListener("touchend", (e) => handleMouseUp(e));
 canvas.addEventListener("wheel", (e) => handleMouseWheel(e));
@@ -131,13 +131,13 @@ canvas.addEventListener("wheel", (e) => handleMouseWheel(e));
 // =========================
 // Event Listener functions
 // =========================
-function handleDrawStart(e) {
+function handleDrawStart(x, y) {
     isDrawing = true;
 
 	currentStroke = new Stroke();
 	strokes.push(currentStroke);
 		
-	uv = camera.screenToWorld(e.clientX, e.clientY)
+	uv = camera.screenToWorld(x, y);
 	const p = new Node(uv.x, uv.y);
 
 	currentStroke.nodes.push(p);
@@ -150,44 +150,74 @@ function handleMouseDown(e) {
         lastX = e.clientX;
         lastY = e.clientY;
     } else {
-		handleDrawStart(e);
+		handleDrawStart(e.clientX, e.clientY);
 	}
+}
+
+function handleTouchStart(e) {
+    if (e.touches.length === 1) { // single touch for drawing
+        const touch = e.touches[0];
+        handleDrawStart(touch.clientX, touch.clientY);
+    } else if (e.touches.length === 2) { // two fingers for panning
+        isPanning = true;
+        lastX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        lastY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    }
+}
+
+function handleContinuePanning(x, y) {
+    const dx = x - lastX;
+	const dy = y - lastY;
+
+	camera.pan(dx, dy);
+
+	lastX = x;
+	lastY = y;
+}
+
+function handleContinueDrawing(x, y) {
+    const uv = camera.screenToWorld(x, y);
+	const p = new Node(uv.x, uv.y);
+
+	const dx = p.x - lastPoint.x;
+	const dy = p.y - lastPoint.y;
+	const dist = Math.sqrt(dx * dx + dy * dy);
+
+	// adaptive sampling (important for your system)
+	if (dist < SAMPLE_DIST) return;
+		
+	currentStroke.nodes.push(p);
+
+	// build Bézier segment (simple heuristic)
+	if (currentStroke.nodes.length >= 3) {
+		const n = currentStroke.nodes;
+
+		const p0 = n[n.length - 3];
+		const p1 = n[n.length - 2];
+		const p2 = n[n.length - 1];
+
+		currentStroke.segments.push(new Segment(p0, p1, p2));
+	}
+	lastPoint = p;
 }
 
 function handleMouseMove(e) {
 	if (isPanning) {
-		const dx = e.clientX - lastX;
-		const dy = e.clientY - lastY;
-
-		camera.pan(dx, dy);
-
-		lastX = e.clientX;
-		lastY = e.clientY;
+        handleContinuePanning(e.clientX, e.clientY);
 	} else if (isDrawing) {
-		uv = camera.screenToWorld(e.clientX, e.clientY)
-		const p = new Node(uv.x, uv.y);
-
-		const dx = p.x - lastPoint.x;
-		const dy = p.y - lastPoint.y;
-		const dist = Math.sqrt(dx * dx + dy * dy);
-
-		// adaptive sampling (important for your system)
-		if (dist < SAMPLE_DIST) return;
-		
-		currentStroke.nodes.push(p);
-
-		// build Bézier segment (simple heuristic)
-		if (currentStroke.nodes.length >= 3) {
-			const n = currentStroke.nodes;
-
-			const p0 = n[n.length - 3];
-			const p1 = n[n.length - 2];
-			const p2 = n[n.length - 1];
-
-			currentStroke.segments.push(new Segment(p0, p1, p2));
-		}
-		lastPoint = p;
+		handleContinueDrawing(e.clientX, e.clientY);
 	}
+}
+
+function handleTouchMove(e) {
+    if (e.touches.length === 1 && isDrawing) { // single touch for drawing
+        const touch = e.touches[0]; 
+        handleContinueDrawing(touch.clientX, touch.clientY);
+    } else if (e.touches.length === 2 && isPanning) { // two fingers for panning
+        const x = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const y = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        handleContinuePanning(x, y);
+    }
 }
 
 function handleMouseUp(e) {
