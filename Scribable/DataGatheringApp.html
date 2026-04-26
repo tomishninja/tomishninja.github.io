@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Stroke Prototype</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            background: #111;
+        }
+        #ui {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 16px;
+            background-color: #111;
+        }
+        #ui button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 150px;
+            height: 40px;
+            flex: 0 0 150px;
+        }
+        #ui h1 {
+            color: white;
+            margin: 0;
+            flex: 1;
+            text-align: center;
+        }
+
+        #id {
+            width: 100px;
+            float: center;
+        }
+
+        .ui_background {
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .left {
+            float: left;
+        }
+
+        .right {
+            float: right;
+        }
+
+        
+    </style>
+</head>
+<body>
+<div id="ui" class = "ui_background">
+    <button id="save">Save / Next</button>
+    <h1 id="status"></h1>
+    <button id="discard">Discard</button>
+</div>
+<canvas id="c"></canvas>
+<script src="main.js"></script>
+<script src="randomWord.js"></script>
+<script>
+
+    ///======================================
+    // DOM Elements
+    // ======================================
+    const SaveButton = document.getElementById('save');
+    const DiscardButton = document.getElementById('discard');
+    const StatusPropmpt = document.getElementById('status');
+
+    // ======================================
+    // Classes
+    // =======================================
+    class Word {
+        constructor(strokes, word) {
+            this.strokes = strokes;
+            this.word = word;
+        }
+    }
+
+    // ======================================
+    // Variables
+    // =====================================
+    var currentWord = "";
+    var nextWord = "";
+    var timeOutTime = 5000;
+
+    //======================================
+    // Functions
+    // =====================================
+
+    // This function fetches a random word from the API and updates the status prompt
+    async function getNextWord() {
+        try{
+            const response = await fetch('https://random-word-api.herokuapp.com/word', {
+                signal: AbortSignal.timeout(timeOutTime)
+            });
+            const data = await response.json();
+            nextWord = data[0];
+        } catch (error) {
+            nextWord = getRandomWord();
+        }
+    }
+
+    // This function allows you to download data as a file in the browser
+    async function downloadData(data, fileName, type) {
+        // 1. Create a Blob from the data
+        const blob = new Blob([data], { type: type });
+        
+        // 2. Create a temporary URL for that Blob
+        const url = window.URL.createObjectURL(blob);
+        
+        // 3. Trigger the download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        link.click();
+        
+        // 4. Clean up memory
+        window.URL.revokeObjectURL(url);
+    }
+
+    async function setup(){
+        await getNextWord();
+        currentWord = nextWord;
+        StatusPropmpt.textContent = currentWord;
+        timeOutTime = 10000; // Increase timeout for subsequent calls
+        getNextWord(); // Preload the next word for smoother transitions
+    }
+
+    //======================================
+    // Event Listeners
+    // =====================================
+    SaveButton.addEventListener("click", function() {
+        // Save the current Word data as a JSON file
+        const wordData = new Word(strokes, currentWord);
+        const jsonData = JSON.stringify(wordData);
+        downloadData(jsonData, `${currentWord}.json`, 'application/json');
+
+        currentWord = nextWord;
+        StatusPropmpt.textContent = currentWord;
+        // Get a new word and update the status prompt
+        getNextWord();
+
+        // Clear the canvas for the next word
+        clearCanvas();
+    });
+
+    // Discard button simply clears the canvas without saving - Keeps word the same
+    DiscardButton.addEventListener("click", function() {
+        clearCanvas();
+    });
+
+    //======================================
+    // Initial Setup
+    // =======================================
+    setup();
+
+</script>
+</body>
+</html>
