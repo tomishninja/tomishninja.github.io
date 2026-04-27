@@ -157,22 +157,6 @@
         clearCanvas();
     });
 
-
-    SaveButton.addEventListener("click", function() {
-        // Save the current Word data as a JSON file
-        const wordData = new Word(strokes, currentWord);
-        const jsonData = JSON.stringify(wordData);
-        downloadData(jsonData, `${currentWord}.json`, 'application/json');
-
-        currentWord = nextWord;
-        StatusPropmpt.textContent = currentWord;
-        // Get a new word and update the status prompt
-        getNextWord();
-
-        // Clear the canvas for the next word
-        clearCanvas();
-    });
-
     // Discard button simply clears the canvas without saving - Keeps word the same
     DiscardButton.addEventListener("click", function() {
         clearCanvas();
