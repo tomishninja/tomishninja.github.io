@@ -19,6 +19,12 @@ class Camera {
         this.maxZoom = 5.0;
     }
 
+    reset() {
+        this.x = 0;
+        this.y = 0;
+        this.zoom = 1.0;
+    }
+
     // Apply transform before drawing
     apply(ctx) {
         ctx.setTransform(
@@ -66,13 +72,19 @@ class Camera {
     }
 }
 
-const camera = new Camera();
+class Timer {
+    constructor() {
+        this.startTime = performance.now();
+    }
 
+    reset() {
+        this.startTime = performance.now();
+    }
 
-
-let isPanning = false;
-let lastX = 0;
-let lastY = 0;
+    getElapsedTime() {
+        return performance.now() - this.startTime;
+    }
+}
 
 // =========================
 // DATA STRUCTURES
@@ -82,6 +94,7 @@ class Node {
     constructor(x, y) {
         this.x = x;
         this.y = y;
+        this.time = timer.getElapsedTime();
     }
 }
 
@@ -92,6 +105,7 @@ class Segment {
         this.p0 = p0;
         this.p1 = p1;
         this.p2 = p2;
+        this.time = timer.getElapsedTime();
     }
 }
 
@@ -99,6 +113,7 @@ class Stroke {
     constructor() {
         this.segments = [];
         this.nodes = [];
+        this.time = timer.getElapsedTime();
     }
 }
 
@@ -106,13 +121,18 @@ class Stroke {
 // SYSTEM STATE
 // =========================
 
+// sampling threshold (controls smoothness)
+const SAMPLE_DIST = 6;
+const camera = new Camera();
+const timer = new Timer();
+
 let strokes = [];
 let currentStroke = null;
 let isDrawing = false;
 
-
-// sampling threshold (controls smoothness)
-const SAMPLE_DIST = 6;
+let isPanning = false;
+let lastX = 0;
+let lastY = 0;
 
 // =========================
 // INPUT HANDLING
@@ -183,8 +203,10 @@ function handleContinueDrawing(x, y) {
 	const dy = p.y - lastPoint.y;
 	const dist = Math.sqrt(dx * dx + dy * dy);
 
+    
 	// adaptive sampling (important for your system)
 	if (dist < SAMPLE_DIST) return;
+    // TODO the obove line needs to be changed to allow for the drawings of dots
 		
 	currentStroke.nodes.push(p);
 
@@ -283,8 +305,6 @@ function drawBezier(seg) {
     ctx.stroke();
 }
 
-render();
-
 // =========================
 // Functions
 // =========================
@@ -293,6 +313,8 @@ render();
 // Rebuilds the line segments in a manner that is more visually appealing.
 //
 function rebuildSegments(stroke) {
+    if (!stroke) return;
+
     stroke.segments = [];
 
     const n = stroke.nodes;
@@ -306,11 +328,21 @@ function rebuildSegments(stroke) {
 }
 
 function clearCanvas() {
-    strokes = [];
+    // Finalize any in-progress stroke/pan (same as mouseUp logic)
+    isDrawing = false;
     isPanning = false;
+    currentStroke = null;
+    lastPoint = null;
+    // Clear everything
+    strokes = [];
     lastX = 0;
     lastY = 0;
-    currentStroke = null;
-    isDrawing = false;
-    lastPoint = null;
+    camera.reset();
+    timer.reset();
 }
+
+// ============================
+// Start up
+// ============================
+
+render();
