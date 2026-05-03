@@ -1,1 +1,1 @@
-Thomas Clarke's Personal Webiste
+Thomas Clarke's Personal Website
