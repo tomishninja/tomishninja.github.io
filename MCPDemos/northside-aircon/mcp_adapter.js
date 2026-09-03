@@ -1,4 +1,4 @@
-import adapter from "../../adapters/scheduler.js";
+import adapter from "https://tomishninja.github.io/javascript/scheduler.js";
 import { BackendDataTemplate } from "../../adapters/mcp_adapter.js";
 
 class NorthsideAirconBackendData extends BackendDataTemplate {
