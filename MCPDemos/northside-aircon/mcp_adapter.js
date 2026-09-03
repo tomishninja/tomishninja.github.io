@@ -52,6 +52,6 @@ class NorthsideAirconBackendData extends BackendDataTemplate {
 }
 
 const backendData = new NorthsideAirconBackendData();
-adapter.initBackend(backendData);
+await registerSchedulingTools(backendData);
 
 export default adapter;

@@ -2,9 +2,6 @@
 // AGENT-READABLE SCHEDULING ADAPTER - VERSION 1.0.0
 // =============================================================
 
-// This stores the object holding the information for the MCP server
-let _backendData = {};
-
 const inferenceLevels = {
   0: { name: "CONFIRMED", method: "explicit_slots" },
   1: { name: "DERIVED", method: "busy_hours_derived" },
@@ -13,41 +10,12 @@ const inferenceLevels = {
   4: { name: "UNAVAILABLE", method: "no_data" }
 };
 
-const modelContext =
-  typeof document !== "undefined" &&
-  document.modelContext &&
-  typeof document.modelContext.registerTool === "function"
-    ? document.modelContext
-    : null;
-
-// ============================================================
-// Tool-facing helper functions
-// ============================================================
-function getBusinessServices() {
-  return typeof _backendData.get_business_services === "function"
-    ? JSON.stringify(_backendData.get_business_services())
-    : JSON.stringify({});
-}
-
-function bookAppointment(startDateTime, finishDateTime, address, jobDetails, message) {
-  return typeof _backendData.BookAppointment === "function"
-    ? JSON.stringify(_backendData.BookAppointment(startDateTime, finishDateTime, address, jobDetails, message))
-    : JSON.stringify({ error: "BookAppointment function not implemented" });
-}
-
-function initBackend(backendData) {
-  _backendData = backendData || {};
-  return _backendData;
-}
-
 // ============================================================
 // Create the adapter module - only exposes a single function
 // ============================================================
 const FIND_AVAILABLE_TIMES = (function () {
-  async function process(backendData = _backendData, options = {}) {
-    _backendData = backendData || {};
-
-    const formatted = formatDataForAI(_backendData);
+  async function process(backendData, options = {}) {
+    const formatted = formatDataForAI(backendData);
     const temp = formatSlots(formatted);
     const slots = temp[0];
     const inferenceLevel = temp[1];
@@ -64,8 +32,7 @@ const FIND_AVAILABLE_TIMES = (function () {
   }
 
   function formatDataForAI(backendData) {
-    _backendData = backendData || {};
-    return _backendData;
+    return backendData || {};
   }
 
   function formatSlots(formatted) {
@@ -243,8 +210,7 @@ const FIND_AVAILABLE_TIMES = (function () {
     return [slots, inferenceLevel];
   }
 
-  function summarizeExtractedData() {
-    const data = _backendData;
+  function summarizeExtractedData(data) {
     return {
       slotCount: typeof data.AvailableSlots === "function" ? "auto" : 0,
       businessCount: 1,
@@ -258,46 +224,74 @@ const FIND_AVAILABLE_TIMES = (function () {
 })();
 
 // ============================================================
-// Register the tools for the AI to use
+// Register the tools for the AI to use with one explicit provider backend.
 // ============================================================
-if (modelContext) {
-  modelContext.registerTool({
+async function registerSchedulingTools(backendData) {
+  if (
+    typeof document === "undefined" ||
+    !document.modelContext ||
+    typeof document.modelContext.registerTool !== "function"
+  ) {
+    throw new Error("WebMCP is unavailable in this document");
+  }
+
+  if (!backendData || typeof backendData !== "object") {
+    throw new TypeError("A provider backend object is required");
+  }
+
+  const modelContext = document.modelContext;
+
+  await modelContext.registerTool({
     name: "book_appointment",
     description:
-      "Sends a request to the backend to book an appointment with the given details" +
-      "This function will return \"success\" if the appointment was booked successfully," +
-      " a custom message from the provider if it failed, or an error message if it failed.",
+      "Request an appointment from this provider using the selected start and finish times.",
     inputSchema: {
       type: "object",
       properties: {
-        startDateTime: { type: "Date" },
-        finishDateTime: { type: "Date" },
-        Address: { type: "string" },
+        startDateTime: { type: "string", format: "date-time" },
+        finishDateTime: { type: "string", format: "date-time" },
+        address: { type: "string" },
         jobDetails: { type: "string" },
-        Message: { type: "string" }
-      }
+        message: { type: "string" }
+      },
+      required: ["startDateTime", "finishDateTime"],
+      additionalProperties: false
     },
+    annotations: { readOnlyHint: false },
     execute: async (input) => {
-      return bookAppointment(
+      if (typeof backendData.BookAppointment !== "function") {
+        return { error: "BookAppointment function not implemented" };
+      }
+
+      return backendData.BookAppointment(
         input.startDateTime,
         input.finishDateTime,
-        input.Address,
+        input.address,
         input.jobDetails,
-        input.Message
+        input.message
       );
     }
   });
 
-  modelContext.registerTool({
+  await modelContext.registerTool({
     name: "get_business_services",
-    description: "Tells the system the servcies rendered from this bussiness",
-    inputSchema: {},
+    description: "Return this provider's services, service areas, timezone, and scheduling capabilities.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      additionalProperties: false
+    },
+    annotations: {
+      readOnlyHint: true
+    },
     execute: async () => {
-      return getBusinessServices();
+      return typeof backendData.get_business_services === "function"
+        ? backendData.get_business_services()
+        : {};
     }
   });
 
-  modelContext.registerTool({
+  await modelContext.registerTool({
     name: "find_times_for_appointment",
     description:
       "Returns times that the provider is available to meet with the client. " +
@@ -306,12 +300,23 @@ if (modelContext) {
     inputSchema: {
       type: "object",
       properties: {
-        startDateTime: { type: "Date" },
-        finishDateTime: { type: "Date" }
-      }
+        startDateTime: {
+          type: "string",
+          format: "date-time"
+        },
+        finishDateTime: {
+          type: "string",
+          format: "date-time"
+        }
+      },
+      required: ["startDateTime", "finishDateTime"],
+      additionalProperties: false
+    },
+    annotations: {
+      readOnlyHint: true
     },
     execute: async (input) => {
-      return FIND_AVAILABLE_TIMES.process(_backendData, {
+      return FIND_AVAILABLE_TIMES.process(backendData, {
         startDateTime: input.startDateTime,
         finishDateTime: input.finishDateTime
       });
@@ -321,10 +326,9 @@ if (modelContext) {
 
 const schedulerAdapter = {
   inferenceLevels,
-  initBackend,
-  getBusinessServices,
-  bookAppointment,
+  registerSchedulingTools,
   process: FIND_AVAILABLE_TIMES.process
 };
 
+export { inferenceLevels, registerSchedulingTools };
 export default schedulerAdapter;

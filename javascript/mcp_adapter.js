@@ -4,11 +4,11 @@
 //
 // WHAT THIS FILE IS
 // ------------------
-// scheduler-adapter.js works off a single object it calls `_backendData`.
-// That object is just a plain JS object (or class instance) with a handful
+// scheduler.js receives one provider backend object when its WebMCP tools are
+// registered. That backend is a plain JS object (or class instance) with a handful
 // of optional functions on it — CalendarAppointments(), WorkingHours(),
 // AvailableSlots(), etc. Depending on WHICH of those functions you provide,
-// scheduler-adapter.js computes an "inference level" (0 = explicit/confirmed
+// scheduler.js computes an "inference level" (0 = explicit/confirmed
 // down to 4 = no usable data) and formats your data into agent-readable
 // slots automatically.
 //
@@ -25,16 +25,15 @@
 // 3. You do NOT need to implement every method. Implement as many as you
 //    reasonably can — more functions generally means a lower (better)
 //    inference level and a more reliable result for the agent.
-// 4. It is completely fine to not follow this shape at all. scheduler-adapter.js
+// 4. It is completely fine to not follow this shape at all. scheduler.js
 //    will accept whatever object you hand it and do its best. Following this
 //    template just gives you predictably better inference results.
-// 5. Once your instance is filled in, hand it to the scheduler adapter so it
-//    becomes `_backendData` there, e.g.:
+// 5. Once your instance is filled in, register the scheduler tools with it:
 //
 //      const backend = new MyBackendData();
-//      const result = await adapter.process(backend);   // see USAGE below
+//      await registerSchedulingTools(backend);   // see USAGE below
 //
-// INFERENCE LEVELS (computed FOR you by scheduler-adapter.js)
+// INFERENCE LEVELS (computed FOR you by scheduler.js)
 // -------------------------------------------------------------
 //   Level 0 — CONFIRMED    : AvailableSlots() implemented
 //   Level 1 — DERIVED      : CalendarAppointments() AND WorkingHours() implemented
@@ -47,9 +46,8 @@
 // from which methods exist on the object you provide.
 //
 // ============================================================================
-// IMPORT — do not edit scheduler.js from this file.
+// IMPORT — this template defines backend data shape only.
 // ============================================================================
-import adapter from "https://tomishninja.github.io/javascript/scheduler.js";
 
 // ============================================================================
 // CLASS: BackendDataTemplate
@@ -275,17 +273,13 @@ class BackendDataTemplate {
 // ============================================================================
 // 1. Extend or edit BackendDataTemplate above with your own implementations.
 // 2. Create an instance and hand it to the scheduler adapter — this is what
-//    becomes `_backendData` inside scheduler-adapter.js:
+  //    is captured directly by the registered WebMCP tool callbacks:
 //
 //      const backend = new BackendDataTemplate();
-//      const result = await adapter.process(backend);
+  //      await registerSchedulingTools(backend);
 //
-// 3. `result` will contain the computed inferenceLevel, formatted slots,
-//    confidence, and provenance — ready to hand back to the AI/WebMCP tool.
-//
-// The exact export/call shape of scheduler-adapter.js is still being
-// finalized in that file — adjust the `import` above and the call in step 2
-// to match whatever it ends up exporting.
+  // 3. The registered tools will return the computed inference level and
+  //    normalized scheduling evidence to the agent when invoked.
 // ============================================================================
 
 export { BackendDataTemplate };
