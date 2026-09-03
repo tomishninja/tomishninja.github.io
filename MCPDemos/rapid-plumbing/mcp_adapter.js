@@ -1,4 +1,5 @@
-import { BackendDataTemplate } from "https://tomishninja.github.io/javascript/mcp_adapter.js";
+import adapter from "../../adapters/scheduler.js";
+import { BackendDataTemplate } from "../../adapters/mcp_adapter.js";
 
 class RapidPlumbingBackendData extends BackendDataTemplate {
   constructor() {
@@ -73,4 +74,7 @@ class RapidPlumbingBackendData extends BackendDataTemplate {
   }
 }
 
-export default new RapidPlumbingBackendData();
+const backendData = new RapidPlumbingBackendData();
+adapter.initBackend(backendData);
+
+export default adapter;

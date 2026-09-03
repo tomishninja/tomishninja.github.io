@@ -1,4 +1,5 @@
-import { BackendDataTemplate } from "https://tomishninja.github.io/javascript/mcp_adapter.js";
+import adapter from "../../adapters/scheduler.js";
+import { BackendDataTemplate } from "../../adapters/mcp_adapter.js";
 
 class NorthsideAirconBackendData extends BackendDataTemplate {
   constructor() {
@@ -50,4 +51,7 @@ class NorthsideAirconBackendData extends BackendDataTemplate {
   }
 }
 
-export default new NorthsideAirconBackendData();
+const backendData = new NorthsideAirconBackendData();
+adapter.initBackend(backendData);
+
+export default adapter;

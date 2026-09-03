@@ -1,4 +1,5 @@
-import { BackendDataTemplate } from "https://tomishninja.github.io/javascript/mcp_adapter.js";
+import adapter from "../../adapters/scheduler.js";
+import { BackendDataTemplate } from "../../adapters/mcp_adapter.js";
 
 class SparkysBackendData extends BackendDataTemplate {
   constructor() {
@@ -63,4 +64,7 @@ class SparkysBackendData extends BackendDataTemplate {
   }
 }
 
-export default new SparkysBackendData();
+const backendData = new SparkysBackendData();
+adapter.initBackend(backendData);
+
+export default adapter;
