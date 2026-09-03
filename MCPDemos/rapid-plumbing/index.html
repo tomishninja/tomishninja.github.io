@@ -48,11 +48,11 @@
 
     <div class="card">
       <h3>Select Service</h3>
-      <div class="service-card" data-service="fixed-plumbing" onclick="selectService(this)">
+      <div class="service-card" data-service="fixed-plumbing">
         <h3>Fixed Plumbing</h3>
         <p>45-minute appointments <span class="badge">Standard</span></p>
       </div>
-      <div class="service-card" data-service="emergency-drain" onclick="selectService(this)">
+      <div class="service-card" data-service="emergency-drain">
         <h3>Emergency Drain Cleaning</h3>
         <p>45-minute service <span class="badge">Urgent</span></p>
       </div>
@@ -105,7 +105,6 @@
     let selectedService = 'fixed-plumbing';
     let selectedDate = null;
     let selectedSlotTime = null;
-    const bookBtn = document.getElementById('book-btn');
 
     function updateMcpStatusBadge() {
       const badge = document.getElementById('mcp-status-badge');
@@ -142,6 +141,15 @@
     }
     
     document.addEventListener('DOMContentLoaded', () => {
+      const slotsContainer = document.getElementById('slots-container');
+      const noSlotsMsg = document.getElementById('no-slots-msg');
+      const availabilityResult = document.getElementById('availability-result');
+      const selectedSlot = document.getElementById('selected-slot');
+      const slotMetadata = document.getElementById('slot-metadata');
+      const bookingForm = document.getElementById('booking-form');
+      const bookBtn = document.getElementById('book-btn');
+      const bookingStatus = document.getElementById('booking-status');
+
       updateMcpStatusBadge();
       console.log("QuickFix Plumbing demo initialized with unified adapter");
       
@@ -172,7 +180,7 @@
         slotsContainer.innerHTML = '';
         noSlotsMsg.style.display = 'none';
         availabilityResult.classList.remove('visible');
-        document.getElementById('booking-form').style.display = 'none';
+        bookingForm.style.display = 'none';
         
         slotTimes.forEach(time => {
           const slot = document.createElement('div');
@@ -190,7 +198,7 @@
       
       function showAvailabilityResult(slotTime) {
         availabilityResult.classList.add('visible');
-        document.getElementById('booking-form').style.display = 'block';
+        bookingForm.style.display = 'block';
         selectedSlot.textContent = slotTime;
         slotMetadata.innerHTML = `
           <strong>Service:</strong> Fixed Plumbing<br>
