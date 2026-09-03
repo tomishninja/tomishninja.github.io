@@ -113,7 +113,16 @@
     let selectedDate = null;
     let selectedSlot = null;
     let selectedTechnician = null;
+    const timeOptions = document.getElementById('time-options');
+    const noSlotsMsg = document.getElementById('no-slots-msg');
+    const availabilityResult = document.getElementById('availability-result');
+    const detailsPanel = document.getElementById('details-panel');
+    const detailsContent = document.getElementById('details-content');
+    const bookingForm = document.getElementById('booking-form');
+    const bestMatch = document.getElementById('best-match');
+    const matchMetadata = document.getElementById('match-metadata');
     const bookBtn = document.getElementById('book-btn');
+    const bookingStatus = document.getElementById('booking-status');
 
     function updateMcpStatusBadge() {
       const badge = document.getElementById('mcp-status-badge');
@@ -213,7 +222,7 @@
       noSlotsMsg.style.display = 'none';
       availabilityResult.classList.remove('visible');
       detailsPanel.style.display = 'none';
-      document.getElementById('booking-form').style.display = 'none';
+      bookingForm.style.display = 'none';
       
       if (!selectedDate || !selectedTechnician) return;
       
@@ -275,12 +284,13 @@
     function showAvailabilityResult() {
       if (!selectedSlot || !selectedTechnician) return;
       availabilityResult.classList.add('visible');
-      document.getElementById('booking-form').style.display = 'block';
+      bookingForm.style.display = 'block';
       bestMatch.textContent = `${selectedSlot.time} with ${selectedTechnician.name}`;
       matchMetadata.innerHTML = `
         <strong>Technician:</strong> ${selectedTechnician.name}<br>
         <strong>Service:</strong> Air conditioner installation<br>
         <strong>Duration:</strong> 90 minutes<br>
+        <strong>Inference:</strong> ${adapter.inferenceLevels[2].name}
       `;
     }
     
