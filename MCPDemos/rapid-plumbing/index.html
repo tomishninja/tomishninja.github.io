@@ -144,7 +144,6 @@
     document.addEventListener('DOMContentLoaded', () => {
       updateMcpStatusBadge();
       console.log("QuickFix Plumbing demo initialized with unified adapter");
-      console.log("Adapter inference level:", adapter.inferenceLevels[0]?.name);
       
       document.querySelectorAll('.service-card').forEach(opt => {
         opt.addEventListener('click', () => {
