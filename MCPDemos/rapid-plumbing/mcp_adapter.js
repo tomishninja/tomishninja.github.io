@@ -75,6 +75,6 @@ class RapidPlumbingBackendData extends BackendDataTemplate {
 }
 
 const backendData = new RapidPlumbingBackendData();
-await registerSchedulingTools(backendData);
+await adapter.registerSchedulingTools(backendData);;
 
 export default adapter;

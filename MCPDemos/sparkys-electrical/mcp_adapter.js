@@ -65,6 +65,6 @@ class SparkysBackendData extends BackendDataTemplate {
 }
 
 const backendData = new SparkysBackendData();
-await registerSchedulingTools(backendData);
+await adapter.registerSchedulingTools(backendData);
 
 export default adapter;
