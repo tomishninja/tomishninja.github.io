@@ -50,11 +50,11 @@
 
     <div class="card">
       <h3>Select Service</h3>
-      <div class="service-option" data-service="power-point-repair" onclick="selectService(this)">
+      <div class="service-option" data-service="power-point-repair">
         <h3>Power Point Repair</h3>
         <p>60-minute service <span class="badge">$180 AUD estimate</span></p>
       </div>
-      <div class="service-option" data-service="ceiling-fan-install" onclick="selectService(this)">
+      <div class="service-option" data-service="ceiling-fan-install">
         <h3>Ceiling Fan Installation</h3>
         <p>60-minute service</p>
       </div>
@@ -149,6 +149,15 @@
     
     // Initialize after DOM load
     document.addEventListener('DOMContentLoaded', () => {
+      const slotsContainer = document.getElementById('slots-container');
+      const noSlotsMsg = document.getElementById('no-slots-msg');
+      const availabilityResult = document.getElementById('availability-result');
+      const selectedSlot = document.getElementById('selected-slot');
+      const slotMetadata = document.getElementById('slot-metadata');
+      const bookingForm = document.getElementById('booking-form');
+      const bookBtn = document.getElementById('book-btn');
+      const bookingStatus = document.getElementById('booking-status');
+
       updateMcpStatusBadge();
       console.log("Sparky's Electrical demo initialized with unified adapter");
       
@@ -186,7 +195,7 @@
         slotsContainer.innerHTML = '';
         noSlotsMsg.style.display = 'none';
         availabilityResult.classList.remove('visible');
-        document.getElementById('booking-form').style.display = 'none';
+        bookingForm.style.display = 'none';
         
         // Generate 5 mock slots between 9am and 3pm
         const slotTimes = [];
@@ -212,7 +221,7 @@
       
       function showAvailabilityResult(slotTime) {
         availabilityResult.classList.add('visible');
-        document.getElementById('booking-form').style.display = 'block';
+        bookingForm.style.display = 'block';
         selectedSlot.textContent = slotTime;
         slotMetadata.innerHTML = `
           <strong>Service:</strong> Power point repair<br>
