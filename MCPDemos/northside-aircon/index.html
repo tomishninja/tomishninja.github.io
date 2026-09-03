@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Northern Air - WebMCP Demo</title>
+  <style>
+    :root {
+      --primary: #1a73e8;
+      --bg: #e8f0fe;
+      --card: #ffffff;
+      --text: #1a0d05;
+      --muted: #5f6368;
+      --success: #34a853;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 20px; }
+    .card { background: var(--card); border-radius: 8px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .card h2 { color: var(--primary); font-size: 18px; margin: 0 0 8px 0; }
+    .skill-badge { display: inline-block; padding: 2px 6px; background: #e3f2fd; border-radius: 3px; font-size: 11px; margin-left: 4px; vertical-align: middle; }
+    .service-item { background: #f8f9fa; border-radius: 6px; padding: 12px; margin: 8px 0; font-size: 14px; }
+    .time-option { width: 100%; background: #fff; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px; margin: 6px 0; cursor: pointer; font-size: 14px; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
+    .time-option:hover { border-color: #ccc; background: #f5f5f5; }
+    .time-option.selected { border-color: var(--primary); background: #e3f2fd; font-weight: 500; }
+    .availability-result { margin-top: 20px; padding: 16px; background: #e8f5e9; border-radius: 6px; display: none; border-left: 4px solid var(--success); }
+    .availability-result.visible { display: block; }
+    .status-good { color: var(--success); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+    .form-row .input-group { display: flex; flex-direction: column; }
+    .form-row .input-group label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .form-row .input-group input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+    .btn { background: var(--primary); color: white; border: none; border-radius: 4px; padding: 12px 24px; font-size: 15px; cursor: pointer; width: 100%; margin-top: 16px; }
+    .btn:focus { outline: 2px solid #c530d0; outline-offset: 2px; }
+    .info-text { color: var(--muted); font-size: 12px; margin-top: 8px; }
+    .details-list { margin: 12px 0; }
+    .details-list dt { font-weight: 500; color: var(--primary); font-size: 13px; }
+    .details-list dd { margin: 4px 0 0 0; font-size: 13px; }
+    .mcp-status-badge { display: inline-block; margin-top: 10px; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .mcp-ok { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
+    .mcp-warn { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
+    .mcp-off { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h3>Available Technicians</h3>
+      <span id="mcp-status-badge" class="mcp-status-badge mcp-off">WebMCP: checking...</span>
+      <div id="technicians-list">
+        <!-- Populated by adapter -->
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Select Service</h3>
+      <div id="services-list">
+        <!-- Populated by adapter -->
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Select Date Range</h3>
+      <input type="date" id="date-input" min="2026-09-01" max="2026-09-07">
+      <p class="info-text">Technician Sam available 8:00 AM - 5:00 PM, Alex 9:00 AM - 7:00 PM</p>
+    </div>
+
+    <div class="card">
+      <h3>Available Time Slots</h3>
+      <div id="time-options" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; margin-top: 12px;">
+        <!-- Slots injected by adapter -->
+      </div>
+      <p id="no-slots-msg" style="grid-column: 1 / -1; display: none; color: var(--muted);">No slots available for this date.</p>
+    </div>
+
+    <div class="availability-result" id="availability-result">
+      <strong>Best Match:</strong> <span id="best-match"></span><br>
+      <small id="match-metadata" style="color: var(--muted)"></small>
+    </div>
+
+    <div class="card" id="details-panel" style="display: none;">
+      <h3>Slot Details</h3>
+      <div class="details-list" id="details-content">
+        <!-- Populated by adapter -->
+      </div>
+    </div>
+
+    <div class="card" id="booking-form" style="display: none;">
+      <h3>Book Appointment</h3>
+      <p>Hold this slot while you confirm details.</p>
+      <div class="form-row">
+        <div class="input-group">
+          <label>Your Name:</label>
+          <input type="text" id="customer-name" required>
+        </div>
+        <div class="input-group">
+          <label>Phone:</label>
+          <input type="tel" id="customer-phone" required>
+        </div>
+      </div>
+      <div style="margin: 16px 0;">
+        <label>Issue Description:</label>
+        <textarea id="job-details" rows="3" placeholder="e.g. AC not cooling, need HVAC technician"></textarea>
+      </div>
+      <button class="btn" id="hold-btn">Hold Slot</button>
+      <p class="info-text" id="hold-status" style="margin-top: 16px; color: var(--muted); display: none;"></p>
+    </div>
+  </div>
+
+  <script type="module">
+    import adapter from '../../adapters/scheduler.js';
+    import backendData from './mcp_adapter.js';
+    
+    let selectedService = 'aircon-install';
+    let selectedDate = null;
+    let selectedSlot = null;
+    let holdId = null;
+    let selectedTechnician = null;
+
+    adapter.initBackend(backendData);
+
+    function updateMcpStatusBadge() {
+      const badge = document.getElementById('mcp-status-badge');
+      if (!badge) return;
+
+      const modelContext = typeof document !== 'undefined' ? document.modelContext : null;
+      const hasWebMcp = !!(modelContext && typeof modelContext.registerTool === 'function');
+      const tools = modelContext && modelContext.tools ? modelContext.tools : null;
+      const expectedTools = ['get_business_services', 'find_times_for_appointment', 'book_appointment'];
+      const detectedTools = expectedTools.filter(name => tools && typeof tools[name] === 'function');
+      const toolsReady = !!(
+        tools &&
+        typeof tools.get_business_services === 'function' &&
+        typeof tools.find_times_for_appointment === 'function'
+      );
+      const toolSummary = detectedTools.length > 0
+        ? `Detected tools: ${detectedTools.join(', ')}`
+        : 'Detected tools: none';
+
+      badge.classList.remove('mcp-ok', 'mcp-warn', 'mcp-off');
+      if (hasWebMcp && toolsReady) {
+        badge.classList.add('mcp-ok');
+        badge.textContent = 'WebMCP: connected, tools registered';
+        badge.title = `${toolSummary}\nStatus: ready for MCP calls`;
+      } else if (hasWebMcp) {
+        badge.classList.add('mcp-warn');
+        badge.textContent = 'WebMCP: detected, waiting for tool bridge';
+        badge.title = `${toolSummary}\nStatus: modelContext detected but required tools are missing`;
+      } else {
+        badge.classList.add('mcp-off');
+        badge.textContent = 'WebMCP: unavailable, demo mode active';
+        badge.title = 'WebMCP is not available in this browser context';
+      }
+    }
+
+    updateMcpStatusBadge();
+    
+    function initTechnicians() {
+      const technicians = [
+        { id: 'sam', name: 'Sam', skills: ['hvac', 'electrical'], shiftStart: 480, shiftEnd: 1020 },
+        { id: 'alex', name: 'Alex', skills: ['hvac', 'solar'], shiftStart: 540, shiftEnd: 1140 }
+      ];
+      
+      const list = document.getElementById('technicians-list');
+      list.innerHTML = '';
+      
+      technicians.forEach(tec => {
+        const div = document.createElement('div');
+        div.className = 'service-item';
+        div.innerHTML = `<strong>${tec.name}</strong> - HVAC & ${tec.skills.slice(1).join(', ')}`;
+        div.addEventListener('click', () => {
+          document.querySelectorAll('.service-item').forEach(d => d.style.background = '');
+          div.style.background = '#e8f5e9';
+          selectedTechnician = tec;
+        });
+        list.appendChild(div);
+      });
+      
+      if (technicians.length > 0) {
+        document.querySelectorAll('.service-item')[0].click();
+      }
+    }
+    
+    function initServices() {
+      const services = [
+        { id: 'aircon-install', name: 'Air conditioner installation', duration: 90 }
+      ];
+      
+      const list = document.getElementById('services-list');
+      list.innerHTML = '';
+      
+      services.forEach(svc => {
+        const div = document.createElement('div');
+        div.className = 'service-item';
+        div.textContent = svc.name;
+        div.addEventListener('click', () => {
+          document.querySelectorAll('.service-item').forEach(d => d.style.background = '');
+          div.style.background = '#e8f5e9';
+          selectedService = svc.id;
+        });
+        list.appendChild(div);
+      });
+      
+      document.querySelector('.service-item:first-child').click();
+    }
+    
+    initTechnicians();
+    initServices();
+    
+    document.getElementById('date-input').addEventListener('change', (e) => {
+      selectedDate = e.target.value;
+      loadTimeOptions();
+    });
+    
+    function loadTimeOptions() {
+      timeOptions.innerHTML = '';
+      noSlotsMsg.style.display = 'none';
+      availabilityResult.classList.remove('visible');
+      detailsPanel.style.display = 'none';
+      document.getElementById('booking-form').style.display = 'none';
+      
+      if (!selectedDate || !selectedTechnician) return;
+      
+      const shiftStart = selectedTechnician.shiftStart;
+      const shiftEnd = selectedTechnician.shiftEnd;
+      const serviceDuration = 90;
+      const granularity = 15;
+      
+      const techJobs = {
+        sam: [
+          { start: 540, end: 630 },
+          { start: 780, end: 900 }
+        ],
+        alex: [
+          { start: 600, end: 720 }
+        ]
+      };
+      
+      const jobs = techJobs[selectedTechnician.id] || [];
+      
+      const slotTimes = [];
+      for (let t = shiftStart; t + serviceDuration <= shiftEnd; t += granularity) {
+        let overlapsJob = false;
+        for (const job of jobs) {
+          if (t < job.end && t + serviceDuration > job.start) {
+            overlapsJob = true;
+            break;
+          }
+        }
+        
+        if (!overlapsJob) {
+          const minutes = t % 60;
+          const hours = Math.floor(t / 60);
+          const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+          slotTimes.push(timeStr);
+        }
+      }
+      
+      slotTimes.forEach(time => {
+        const [h, m] = time.split(':').map(Number);
+        const totalMinutes = h * 60 + m;
+        const slot = document.createElement('div');
+        slot.className = 'time-option';
+        slot.innerHTML = `
+          <span>${time}</span>
+          <span class="skill-badge">Available</span>
+        `;
+        slot.addEventListener('click', () => {
+          document.querySelectorAll('.time-option').forEach(s => s.classList.remove('selected'));
+          slot.classList.add('selected');
+          selectedSlot = { time, minutes: totalMinutes };
+          showAvailabilityResult();
+          showDetails();
+        });
+        timeOptions.appendChild(slot);
+      });
+    }
+    
+    function showAvailabilityResult() {
+      if (!selectedSlot || !selectedTechnician) return;
+      availabilityResult.classList.add('visible');
+      bestMatch.textContent = `${selectedSlot.time} with ${selectedTechnician.name}`;
+      matchMetadata.innerHTML = `
+        <strong>Technician:</strong> ${selectedTechnician.name}<br>
+        <strong>Service:</strong> Air conditioner installation<br>
+        <strong>Duration:</strong> 90 minutes<br>
+        <strong>Inference:</strong> ${adapter.inferenceLevels[2].name}
+      `;
+    }
+    
+    function showDetails() {
+      if (!selectedSlot || !selectedTechnician) return;
+      detailsPanel.style.display = 'block';
+      detailsContent.innerHTML = `
+        <dt>Technician</dt>
+        <dd>${selectedTechnician.name}</dd>
+        <dt>Available Skills</dt>
+        <dd>${selectedTechnician.skills.join(', ')}</dd>
+        <dt>Shift Hours</dt>
+        <dd>${formatTime(selectedTechnician.shiftStart)} - ${formatTime(selectedTechnician.shiftEnd)}</dd>
+        <dt>Available Slot</dt>
+        <dd>${selectedSlot.time}</dd>
+        <dt>Service Duration</dt>
+        <dd>90 minutes</dd>
+      `;
+    }
+    
+    function formatTime(minutes) {
+      const h = Math.floor(minutes / 60);
+      const m = minutes % 60;
+      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    }
+    
+    holdBtn.addEventListener('click', () => {
+      if (!selectedSlot || !selectedTechnician) {
+        alert('Please select a time slot first');
+        return;
+      }
+      holdBtn.disabled = true;
+      holdStatus.style.display = 'block';
+      holdStatus.textContent = 'Requesting hold...';
+      setTimeout(() => {
+        holdId = `hold_${selectedDate}_${selectedSlot.time}_${selectedTechnician.id}_${Date.now()}`;
+        holdStatus.innerHTML = `<span class="status-good">Hold acquired!</span><br>Your 90-minute slot is held until: ${new Date(Date.now() + 5 * 60 * 1000).toLocaleTimeString()}`;
+        document.getElementById('booking-form').style.display = 'block';
+        holdBtn.disabled = false;
+      }, 1500);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sparky's Electrical - WebMCP Demo</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/minimal-icons.css">
+  <style>
+    :root {
+      --primary: #ff9900;
+      --bg: #fdfdfd;
+      --card: #ffffff;
+      --text: #2d3748;
+      --muted: #718096;
+      --success: #48bb78;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 20px; }
+    .card { background: var(--card); border-radius: 8px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .card h3 { color: var(--primary); font-size: 18px; margin: 0 0 8px 0; }
+    .service-option { border: 2px solid #e2e8f0; border-radius: 6px; padding: 16px; margin: 12px 0; cursor: pointer; transition: all 0.2s; }
+    .service-option:hover { border-color: var(--primary); background: #fffbf0; }
+    .service-option.selected { border-color: var(--primary); background: #fffbff; }
+    .service-option h3 { margin: 0 0 8px 0; font-size: 16px; }
+    .service-option p { margin: 0; color: var(--muted); font-size: 13px; }
+    .time-slot { background: #edf2f7; border: none; border-radius: 6px; padding: 12px 16px; margin: 4px; cursor: pointer; font-size: 13px; transition: all 0.2s; white-space: nowrap; }
+    .time-slot:hover { background: #e2e8f0; }
+    .time-slot.selected { background: var(--primary); color: white; }
+    .availability-result { margin-top: 20px; padding: 16px; background: #f7fafc; border-radius: 6px; display: none; }
+    .availability-result.visible { display: block; }
+    .status-good { color: var(--success); }
+    .btn { background: var(--primary); color: white; border: none; border-radius: 4px; padding: 12px 24px; font-size: 15px; cursor: pointer; width: 100%; margin-top: 16px; }
+    .btn:focus { outline: 2px solid #c530d0; outline-offset: 2px; }
+    .info-text { color: var(--muted); font-size: 12px; margin-top: 8px; }
+    .badge { display: inline-block; padding: 2px 6px; background: #e2e8f0; border-radius: 3px; font-size: 11px; margin-left: 4px; }
+    .mcp-status-badge { display: inline-block; margin-top: 10px; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .mcp-ok { background: #e6fffa; color: #0f766e; border: 1px solid #99f6e4; }
+    .mcp-warn { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
+    .mcp-off { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h3>Sparky's Electrical</h3>
+      <p>Calendar Events Backend • Inference Level: <span id="inference-level-1" class="badge">Level 1: DERIVED</span></p>
+      <p>Working Hours: Mon-Fri 8:00-17:00, Sat 9:00-15:00, Sun 10:00-14:00</p>
+      <span id="mcp-status-badge" class="mcp-status-badge mcp-off">WebMCP: checking...</span>
+    </div>
+
+    <div class="card">
+      <h3>Select Service</h3>
+      <div class="service-option" data-service="power-point-repair" onclick="selectService(this)">
+        <h3>Power Point Repair</h3>
+        <p>60-minute service <span class="badge">$180 AUD estimate</span></p>
+      </div>
+      <div class="service-option" data-service="ceiling-fan-install" onclick="selectService(this)">
+        <h3>Ceiling Fan Installation</h3>
+        <p>60-minute service</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Select Date</h3>
+      <input type="date" id="date-input" min="2026-09-01" max="2026-09-07">
+      <p class="info-text" id="date-status">Select a date to see available times</p>
+    </div>
+
+    <div class="card">
+      <h3>Available Slots</h3>
+      <div id="slots-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; margin-top: 12px;">
+        <!-- Slots injected by adapter -->
+      </div>
+      <p id="no-slots-msg" style="grid-column: 1 / -1; display: none; color: var(--muted);">No slots available for this date.</p>
+    </div>
+
+    <div class="availability-result" id="availability-result">
+      <strong>Available Slot:</strong> <span id="selected-slot"></span><br>
+      <small id="slot-metadata" style="color: var(--muted)"></small>
+    </div>
+
+    <div class="card" id="booking-form" style="display: none;">
+      <h3>Book Appointment</h3>
+      <p>Hold this slot while you confirm details.</p>
+      <div style="margin: 16px 0;">
+        <label>Your Name:</label>
+        <input type="text" id="customer-name" required>
+      </div>
+      <div style="margin: 16px 0;">
+        <label>Phone:</label>
+        <input type="tel" id="customer-phone" required>
+      </div>
+      <div style="margin: 16px 0;">
+        <label>Issue Description:</label>
+        <textarea id="job-details" rows="3" placeholder="e.g. Power point intermittently sparking"></textarea>
+      </div>
+      <button class="btn" id="hold-btn">Hold Slot</button>
+      <p class="info-text" id="hold-status" style="margin-top: 16px; color: var(--muted); display: none;"></p>
+    </div>
+  </div>
+
+  <script type="module">
+    // ============================================================
+    // IMPORT SINGLE ADAPTER
+    // ============================================================
+    import adapter from '../../adapters/scheduler.js';
+    import backendData from './mcp_adapter.js';
+    
+    // The adapter is loaded from the external file.
+    // Developers never see the internals - they only use the public API.
+    
+    // Demo state
+    let selectedService = 'power-point-repair';
+    let selectedDate = null;
+    let selectedSlotTime = null;
+    let holdId = null;
+
+    function updateMcpStatusBadge() {
+      const badge = document.getElementById('mcp-status-badge');
+      if (!badge) return;
+
+      const modelContext = typeof document !== 'undefined' ? document.modelContext : null;
+      const hasWebMcp = !!(modelContext && typeof modelContext.registerTool === 'function');
+      const tools = modelContext && modelContext.tools ? modelContext.tools : null;
+      const expectedTools = ['get_business_services', 'find_times_for_appointment', 'book_appointment'];
+      const detectedTools = expectedTools.filter(name => tools && typeof tools[name] === 'function');
+      const toolsReady = !!(
+        tools &&
+        typeof tools.get_business_services === 'function' &&
+        typeof tools.find_times_for_appointment === 'function'
+      );
+      const toolSummary = detectedTools.length > 0
+        ? `Detected tools: ${detectedTools.join(', ')}`
+        : 'Detected tools: none';
+
+      badge.classList.remove('mcp-ok', 'mcp-warn', 'mcp-off');
+      if (hasWebMcp && toolsReady) {
+        badge.classList.add('mcp-ok');
+        badge.textContent = 'WebMCP: connected, tools registered';
+        badge.title = `${toolSummary}\nStatus: ready for MCP calls`;
+      } else if (hasWebMcp) {
+        badge.classList.add('mcp-warn');
+        badge.textContent = 'WebMCP: detected, waiting for tool bridge';
+        badge.title = `${toolSummary}\nStatus: modelContext detected but required tools are missing`;
+      } else {
+        badge.classList.add('mcp-off');
+        badge.textContent = 'WebMCP: unavailable, demo mode active';
+        badge.title = 'WebMCP is not available in this browser context';
+      }
+    }
+    
+    // Initialize after DOM load
+    document.addEventListener('DOMContentLoaded', () => {
+      adapter.initBackend(backendData);
+      updateMcpStatusBadge();
+      console.log("Sparky's Electrical demo initialized with unified adapter");
+      console.log("Adapter inference level:", adapter.inferenceLevels[1]?.name);
+      
+      // Service selection
+      document.querySelectorAll('.service-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+          document.querySelectorAll('.service-option').forEach(o => o.classList.remove('selected'));
+          opt.classList.add('selected');
+          selectedService = opt.dataset.service;
+          loadSlots();
+        });
+      });
+      document.querySelector('.service-option[data-service="power-point-repair"]').click();
+      
+      // Date change
+      document.getElementById('date-input').addEventListener('change', (e) => {
+        selectedDate = e.target.value;
+        loadSlots();
+      });
+      
+      // Load slots for selected date
+      function loadSlots() {
+        if (!selectedDate) return;
+        
+        // Demo: Generate slots based on working hours
+        // In real WebMCP: would call adapter.findAvailableTimes(query)
+        const day = new Date(selectedDate).getDay(); // 0=Sunday, 1=Monday, etc.
+        const hours = {
+          monday: [8, 17], tuesday: [8, 17], wednesday: [8, 17],
+          thursday: [8, 17], friday: [8, 17], saturday: [9, 15], sunday: [10, 14]
+        };
+        const dayName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][day];
+        const [startH, startM] = hours[dayName];
+        
+        slotsContainer.innerHTML = '';
+        noSlotsMsg.style.display = 'none';
+        availabilityResult.classList.remove('visible');
+        document.getElementById('booking-form').style.display = 'none';
+        
+        // Generate 5 mock slots between 9am and 3pm
+        const slotTimes = [];
+        for (let i = 0; i < 5; i++) {
+          const hour = startH + Math.floor(i * 45 / 60);
+          const min = (startM + (i * 45) % 60) % 60;
+          slotTimes.push(`${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`);
+        }
+        
+        slotTimes.forEach(time => {
+          const slot = document.createElement('button');
+          slot.className = 'time-slot';
+          slot.textContent = time;
+          slot.addEventListener('click', () => {
+            document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
+            slot.classList.add('selected');
+            selectedSlotTime = time;
+            showAvailabilityResult(time);
+          });
+          slotsContainer.appendChild(slot);
+        });
+      }
+      
+      function showAvailabilityResult(slotTime) {
+        availabilityResult.classList.add('visible');
+        selectedSlot.textContent = slotTime;
+        slotMetadata.innerHTML = `
+          <strong>Service:</strong> Power point repair<br>
+          <strong>Date:</strong> ${selectedDate}<br>
+          <strong>Inference:</strong> ${adapter.inferenceLevels[1].name}
+        `;
+      }
+      
+      // Hold slot
+      holdBtn.addEventListener('click', () => {
+        if (!selectedSlotTime || !selectedDate) {
+          alert('Please select a time slot first');
+          return;
+        }
+        holdBtn.disabled = true;
+        holdStatus.style.display = 'block';
+        holdStatus.textContent = 'Requesting hold...';
+        
+        setTimeout(() => {
+          holdId = `hold_${selectedDate}_${selectedSlotTime.replace(':', '')}_${Date.now()}`;
+          holdStatus.innerHTML = `
+            <span class="status-good">Hold acquired!</span><br>
+            Your slot is held until: ${new Date(Date.now() + 5 * 60 * 1000).toLocaleTimeString()}
+          `;
+          document.getElementById('booking-form').style.display = 'block';
+          holdBtn.disabled = false;
+        }, 1500);
+      });
+    });
+  </script>
+</body>
+</html>
