@@ -86,7 +86,7 @@
 
     <div class="card" id="booking-form" style="display: none;">
       <h3>Book Appointment</h3>
-      <p>Hold this slot while you confirm details.</p>
+      <p>Send an appointment request for the selected slot.</p>
       <div class="form-row">
         <div class="input-group">
           <label>Your Name:</label>
@@ -101,18 +101,17 @@
         <label>Issue Description:</label>
         <textarea id="job-details" rows="3" placeholder="e.g. AC not cooling, need HVAC technician"></textarea>
       </div>
-      <button class="btn" id="hold-btn">Hold Slot</button>
-      <p class="info-text" id="hold-status" style="margin-top: 16px; color: var(--muted); display: none;"></p>
+      <button class="btn" id="book-btn">Send Booking Request</button>
+      <p class="info-text" id="booking-status" style="margin-top: 16px; color: var(--muted); display: none;"></p>
     </div>
   </div>
 
   <script type="module">
-    import backendData from './mcp_adapter.js';
+    import adapter from './mcp_adapter.js';
     
     let selectedService = 'aircon-install';
     let selectedDate = null;
     let selectedSlot = null;
-    let holdId = null;
     let selectedTechnician = null;
 
     function updateMcpStatusBadge() {
@@ -275,6 +274,7 @@
     function showAvailabilityResult() {
       if (!selectedSlot || !selectedTechnician) return;
       availabilityResult.classList.add('visible');
+      document.getElementById('booking-form').style.display = 'block';
       bestMatch.textContent = `${selectedSlot.time} with ${selectedTechnician.name}`;
       matchMetadata.innerHTML = `
         <strong>Technician:</strong> ${selectedTechnician.name}<br>
@@ -307,19 +307,17 @@
       return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
     }
     
-    holdBtn.addEventListener('click', () => {
+    bookBtn.addEventListener('click', () => {
       if (!selectedSlot || !selectedTechnician) {
         alert('Please select a time slot first');
         return;
       }
-      holdBtn.disabled = true;
-      holdStatus.style.display = 'block';
-      holdStatus.textContent = 'Requesting hold...';
+      bookBtn.disabled = true;
+      bookingStatus.style.display = 'block';
+      bookingStatus.textContent = 'Sending booking request...';
       setTimeout(() => {
-        holdId = `hold_${selectedDate}_${selectedSlot.time}_${selectedTechnician.id}_${Date.now()}`;
-        holdStatus.innerHTML = `<span class="status-good">Hold acquired!</span><br>Your 90-minute slot is held until: ${new Date(Date.now() + 5 * 60 * 1000).toLocaleTimeString()}`;
-        document.getElementById('booking-form').style.display = 'block';
-        holdBtn.disabled = false;
+        bookingStatus.innerHTML = `<span class="status-good">Request sent.</span><br>The provider will confirm your appointment details.`;
+        bookBtn.disabled = false;
       }, 1500);
     });
   </script>

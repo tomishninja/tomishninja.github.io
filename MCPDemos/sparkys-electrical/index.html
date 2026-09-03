@@ -81,7 +81,7 @@
 
     <div class="card" id="booking-form" style="display: none;">
       <h3>Book Appointment</h3>
-      <p>Hold this slot while you confirm details.</p>
+      <p>Send an appointment request for the selected slot.</p>
       <div style="margin: 16px 0;">
         <label>Your Name:</label>
         <input type="text" id="customer-name" required>
@@ -94,8 +94,8 @@
         <label>Issue Description:</label>
         <textarea id="job-details" rows="3" placeholder="e.g. Power point intermittently sparking"></textarea>
       </div>
-      <button class="btn" id="hold-btn">Hold Slot</button>
-      <p class="info-text" id="hold-status" style="margin-top: 16px; color: var(--muted); display: none;"></p>
+      <button class="btn" id="book-btn">Send Booking Request</button>
+      <p class="info-text" id="booking-status" style="margin-top: 16px; color: var(--muted); display: none;"></p>
     </div>
   </div>
 
@@ -103,7 +103,7 @@
     // ============================================================
     // IMPORT SINGLE ADAPTER
     // ============================================================
-    import backendData from './mcp_adapter.js';
+    import adapter from './mcp_adapter.js';
     
     // The adapter is loaded from the external file.
     // Developers never see the internals - they only use the public API.
@@ -112,7 +112,6 @@
     let selectedService = 'power-point-repair';
     let selectedDate = null;
     let selectedSlotTime = null;
-    let holdId = null;
 
     function updateMcpStatusBadge() {
       const badge = document.getElementById('mcp-status-badge');
@@ -150,7 +149,6 @@
     
     // Initialize after DOM load
     document.addEventListener('DOMContentLoaded', () => {
-      adapter.initBackend(backendData);
       updateMcpStatusBadge();
       console.log("Sparky's Electrical demo initialized with unified adapter");
       console.log("Adapter inference level:", adapter.inferenceLevels[1]?.name);
@@ -215,6 +213,7 @@
       
       function showAvailabilityResult(slotTime) {
         availabilityResult.classList.add('visible');
+        document.getElementById('booking-form').style.display = 'block';
         selectedSlot.textContent = slotTime;
         slotMetadata.innerHTML = `
           <strong>Service:</strong> Power point repair<br>
@@ -223,24 +222,18 @@
         `;
       }
       
-      // Hold slot
-      holdBtn.addEventListener('click', () => {
+      bookBtn.addEventListener('click', () => {
         if (!selectedSlotTime || !selectedDate) {
           alert('Please select a time slot first');
           return;
         }
-        holdBtn.disabled = true;
-        holdStatus.style.display = 'block';
-        holdStatus.textContent = 'Requesting hold...';
+        bookBtn.disabled = true;
+        bookingStatus.style.display = 'block';
+        bookingStatus.textContent = 'Sending booking request...';
         
         setTimeout(() => {
-          holdId = `hold_${selectedDate}_${selectedSlotTime.replace(':', '')}_${Date.now()}`;
-          holdStatus.innerHTML = `
-            <span class="status-good">Hold acquired!</span><br>
-            Your slot is held until: ${new Date(Date.now() + 5 * 60 * 1000).toLocaleTimeString()}
-          `;
-          document.getElementById('booking-form').style.display = 'block';
-          holdBtn.disabled = false;
+          bookingStatus.innerHTML = `<span class="status-good">Request sent.</span><br>The provider will confirm your appointment details.`;
+          bookBtn.disabled = false;
         }, 1500);
       });
     });
