@@ -1,4 +1,4 @@
-import { BackendDataTemplate } from "https://tomishninja.github.io/javascript/scheduler.js";
+import { BackendDataTemplate } from "https://tomishninja.github.io/javascript/mcp_adapter.js";
 
 class SparkysBackendData extends BackendDataTemplate {
   constructor() {
